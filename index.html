@@ -31,19 +31,19 @@ header{display:flex;align-items:center;justify-content:space-between;gap:10px;ma
 const colors=['red','green','yellow','blue'],names=['Red','Green','Yellow','Blue'],start=[0,13,26,39],safe=[0,8,13,21,26,34,39,47];
 const path=[[6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],[7,14],[8,14],[8,13],[8,12],[8,11],[8,10],[8,9],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[14,7],[14,6],[13,6],[12,6],[11,6],[10,6],[9,6],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[7,0],[6,0]];
 const lanes=[[[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],[[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],[[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],[[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]]];
-const homes=[[[1,1],[1,4],[4,1],[4,4]],[[1,10],[1,13],[4,10],[4,13]],[[10,10],[10,13],[13,10],[13,13]],[[10,1],[10,4],[13,1],[13,4]]];
+const baseOrigins={red:[0,0],green:[9,0],yellow:[9,9],blue:[0,9]};
 let state,turn,roll,legal=[];const board=document.getElementById('board'),turnEl=document.getElementById('turn'),hint=document.getElementById('hint'),diceBtn=document.getElementById('dice');
 const key=(x,y)=>x+','+y,pathMap=new Map(path.map((p,i)=>[key(...p),i])),laneMap=new Map();
 lanes.forEach((a,p)=>a.forEach((xy,i)=>laneMap.set(key(...xy),{p,i})));
 function buildBoard(){
  board.innerHTML='';
  for(let y=0;y<15;y++)for(let x=0;x<15;x++){let d=document.createElement('div');d.className='cell';d.dataset.xy=key(x,y);if(pathMap.has(key(x,y)))d.classList.add('track');let l=laneMap.get(key(x,y));if(l)d.classList.add('lane-'+colors[l.p]);board.appendChild(d)}
- [['red',0,0],['green',9,0],['blue',0,9],['yellow',9,9]].forEach(([c,x,y])=>{let d=document.createElement('div');d.className='base home-'+c;let p=colors.indexOf(c);for(let i=0;i<4;i++){let s=document.createElement('div');s.className='home-slot';s.dataset.home=p+','+i;d.appendChild(s)}let host=board.children[y*15+x];host.style.zIndex='1';host.appendChild(d)});
+ colors.forEach((c,p)=>{const [x,y]=baseOrigins[c];let d=document.createElement('div');d.className='base home-'+c;for(let i=0;i<4;i++){let s=document.createElement('div');s.className='home-slot';s.dataset.home=p+','+i;d.appendChild(s)}let host=board.children[y*15+x];host.style.zIndex='1';host.appendChild(d)});
  let center=document.createElement('div');center.className='center';center.innerHTML='<span>★</span>';board.appendChild(center);
 }
 function init(){state=colors.map(()=>Array.from({length:4},()=>({step:-1})));turn=0;roll=null;legal=[];document.getElementById('overlay').style.display='none';render()}
 function globalIndex(p,step){return(start[p]+step)%52}
-function position(p,t){let st=state[p][t].step;if(st<0)return{home:true,xy:homes[p][t]};if(st<51)return{home:false,xy:path[globalIndex(p,st)]};return{home:false,xy:lanes[p][Math.min(5,st-51)]}}
+function position(p,t){let st=state[p][t].step;if(st<0)return{home:true};if(st<51)return{home:false,xy:path[globalIndex(p,st)]};return{home:false,xy:lanes[p][Math.min(5,st-51)]}}
 function render(){
  buildBoard();path.forEach((xy,i)=>{if(safe.includes(i)){let e=board.querySelector(`[data-xy="${key(...xy)}"]`);if(e)e.style.boxShadow='inset 0 0 0 2px #f4c542'}});
  let ps=document.getElementById('players');ps.innerHTML='';names.forEach((n,p)=>{let b=document.createElement('button');b.className='player-pill'+(p===turn?' active':'');b.style.color=['#ff8c8c','#75e0a8','#ffe17a','#8bbcff'][p];b.textContent=n;ps.appendChild(b)});
