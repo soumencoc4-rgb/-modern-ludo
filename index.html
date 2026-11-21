@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Modern Ludo</title>
+<style>
+:root{--red:#ef5350;--green:#36b56b;--yellow:#f5c542;--blue:#4388e8}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#101a35,#243b65);font-family:system-ui,Arial;color:#fff;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:12px}
+.app{width:min(100%,650px)}header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.brand{font-weight:900;font-size:clamp(18px,5vw,27px);letter-spacing:.5px}.coins{background:#111d38;border:1px solid #ffffff25;border-radius:20px;padding:8px 13px;font-weight:800;color:#ffdf69}
+.panel{background:#101d39;border:1px solid #ffffff22;border-radius:20px;padding:12px;box-shadow:0 15px 40px #0005}
+.status{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;font-size:13px}.turn{font-weight:800}.hint{opacity:.75;text-align:right}
+.board{display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);gap:2px;aspect-ratio:1;background:#dce5f4;padding:5px;border-radius:14px;position:relative;overflow:hidden}
+.cell{background:#f7f9fc;border-radius:2px;position:relative;display:flex;align-items:center;justify-content:center}
+.home{border-radius:7px;grid-column:span 6;grid-row:span 6;display:flex;align-items:center;justify-content:center;padding:9px}
+.home.red{background:var(--red)}.home.green{background:var(--green)}.home.yellow{background:var(--yellow)}.home.blue{background:var(--blue)}
+.homeInner{width:100%;height:100%;background:#ffffffdf;border-radius:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px}
+.base{border-radius:50%;background:#fff;border:3px solid #d8dce5;box-shadow:inset 0 2px 5px #0002}
+.track{background:#fff;border:1px solid #d7deea}
+.track.red{background:#ffd9d8}.track.green{background:#d8f6e5}.track.yellow{background:#fff1bd}.track.blue{background:#dceaff}
+.center{grid-column:7/10;grid-row:7/10;background:conic-gradient(var(--green) 0 25%,var(--yellow) 25% 50%,var(--blue) 50% 75%,var(--red) 75%);clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%);border-radius:4px}
+.token{width:78%;height:78%;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 4px #0005;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:900;cursor:pointer;z-index:2}
+.token.red{background:#d92d35}.token.green{background:#188b4a}.token.yellow{background:#d99c00}.token.blue{background:#2365c6}
+.controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap}.players{display:flex;gap:6px;flex-wrap:wrap}.playerTag{padding:7px 9px;border-radius:12px;background:#ffffff15;font-size:12px;font-weight:800;border:2px solid transparent}.playerTag.active{border-color:#fff}
+.dice{width:58px;height:58px;border:0;border-radius:16px;background:#fff;color:#17213c;font-size:30px;font-weight:900;box-shadow:0 5px 0 #b8c5da;cursor:pointer}.dice:disabled{opacity:.45}.action{border:0;border-radius:13px;padding:11px 14px;background:#617ee8;color:white;font-weight:800}
+.note{font-size:11px;opacity:.72;text-align:center;margin-top:10px;line-height:1.4}
+.overlay{position:fixed;inset:0;background:#050b19cc;display:none;align-items:center;justify-content:center;padding:20px;z-index:10}.modal{max-width:360px;width:100%;background:#172747;border:1px solid #ffffff33;border-radius:20px;padding:20px;text-align:center}.modal h2{margin-top:0}
+@media(max-width:390px){.panel{padding:8px}.board{gap:1px;padding:3px}.homeInner{gap:4px;padding:7px}.controls{justify-content:center}}
+</style></head>
+<body><main class="app">
+<header><div class="brand">🎲 MODERN LUDO</div><div class="coins">🪙 <span id="coins">0</span></div></header>
+<section class="panel">
+<div class="status"><div class="turn" id="turn">Red's turn</div><div class="hint" id="hint">Roll the dice to start</div></div>
+<div class="board" id="board"></div>
+<div class="controls"><div class="players" id="players"></div><button class="dice" id="dice" aria-label="Roll dice">⚄</button><button class="action" id="new">NEW GAME</button></div>
+<div class="note">Prototype: pass-and-play on one device. Tap a highlighted token after rolling. A 6 brings a token out. Roll a 6 or capture to get another turn.</div>
+</section></main>
+<div class="overlay" id="overlay"><div class="modal"><h2 id="modalTitle">Winner!</h2><p id="modalText"></p><button class="action" id="modalClose">Play again</button></div></div>
+<script>
+const colors=['red','green','yellow','blue'],names=['Red','Green','Yellow','Blue'],starts=[0,13,26,39];
+const path=[[6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],[7,14],[8,14],[8,13],[8,12],[8,11],[8,10],[8,9],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[14,7],[14,6],[13,6],[12,6],[11,6],[10,6],[9,6],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[7,0],[6,0]];
+const lanes=[[[7,1],[7,2],[7,3],[7,4],[7,5]],[[1,7],[2,7],[3,7],[4,7],[5,7]],[[7,13],[7,12],[7,11],[7,10],[7,9]],[[13,7],[12,7],[11,7],[10,7],[9,7]]];
+let state,turn=0,roll=null,coins=0;
+const board=document.querySelector('#board');
+function init(){state=colors.map(()=>Array.from({length:4},()=>({step:-1})));turn=0;roll=null;render();msg('Red starts','Roll the dice. A six releases a token.')}
+function addCell(r,c,cls='cell'){const el=document.createElement('div');el.className=cls;el.style.gridRow=r+1;el.style.gridColumn=c+1;board.append(el);return el}
+function render(){
+board.innerHTML='';
+const homes=[{r:0,c:0,k:0},{r:0,c:9,k:1},{r:9,c:9,k:2},{r:9,c:0,k:3}];
+homes.forEach(h=>{const e=addCell(h.r,h.c,'home '+colors[h.k]);e.style.gridRow=`${h.r+1}/span 6`;e.style.gridColumn=`${h.c+1}/span 6`;const inner=document.createElement('div');inner.className='homeInner';for(let t=0;t<4;t++){const b=document.createElement('div');b.className='base';inner.append(b)}e.append(inner)});
+path.forEach(([r,c],i)=>{const e=addCell(r,c,'cell track');if(i%13===0)e.classList.add(colors[Math.floor(i/13)]);});
+lanes.forEach((lane,p)=>lane.forEach(([r,c])=>addCell(r,c,'cell track '+colors[p])));
+const center=addCell(6,6,'center');center.style.gridRow='7/10';center.style.gridColumn='7/10';
+for(let p=0;p<4;p++)for(let t=0;t<4;t++){const tok=state[p][t];let r,c;if(tok.step<0){const offsets=[[1,1],[1,4],[4,1],[4,4]];r=offsets[t][0]+(p===0||p===3?0:9);c=offsets[t][1]+(p===0||p===1?0:9)}else if(tok.step<52){[r,c]=path[(starts[p]+tok.step)%52]}else if(tok.step<57){[r,c]=lanes[p][tok.step-52]}else{r=7;c=7}
+const el=document.createElement('button');el.className='token '+colors[p];el.textContent=t+1;el.style.position='absolute';el.style.left=`calc(${(c+0.5)/15*100}% - 9px)`;el.style.top=`calc(${(r+0.5)/15*100}% - 9px)`;el.style.width='18px';el.style.height='18px';el.style.padding='0';el.style.border='1px solid white';el.disabled=!(p===turn&&roll!==null&&legal(p,t));el.style.opacity=el.disabled?'.9':'1';el.onclick=()=>move(p,t);board.append(el)}
+document.querySelector('#turn').textContent=names[turn]+"'s turn";document.querySelector('#hint').textContent=roll===null?'Roll the dice':`You rolled ${roll} — tap a token`;
+document.querySelector('#dice').disabled=roll!==null;document.querySelector('#dice').textContent=roll===null?'⚄':['⚀','⚁','⚂','⚃','⚄','⚅'][roll-1];
+document.querySelector('#players').innerHTML=names.map((n,i)=>`<span class="playerTag ${i===turn?'active':''}" style="color:${['#ff8c8c','#72e6a1','#ffe17a','#8bbcff'][i]}">${n}</span>`).join('');
+document.querySelector('#coins').textContent=coins;
+}
+function legal(p,t){const s=state[p][t].step;return (s===-1&&roll===6)||(s>=0&&s<57&&s+roll<=57)}
+function next(){roll=null;turn=(turn+1)%4;render()}
+function move(p,t){if(!legal(p,t))return;let tok=state[p][t];tok.step=tok.step===-1?0:tok.step+roll;let captured=false;
+if(tok.step<52){const pos=(starts[p]+tok.step)%52;for(let q=0;q<4;q++)if(q!==p)for(const other of state[q])if(other.step>=0&&other.step<52&&(starts[q]+other.step)%52===pos){other.step=-1;captured=true;coins+=5}}
+if(tok.step===57){coins+=20}
+const six=roll===6;roll=null;if(state[p].every(x=>x.step===57)){render();document.querySelector('#modalTitle').textContent=names[p]+' wins!';document.querySelector('#modalText').textContent='You earned 50 bonus coins.';coins+=50;document.querySelector('#overlay').style.display='flex';return}
+if(!six&&!captured)turn=(turn+1)%4;render()}
+document.querySelector('#dice').onclick=()=>{if(roll!==null)return;roll=1+Math.floor(Math.random()*6);if(!state[turn].some((_,i)=>legal(turn,i))){setTimeout(()=>{roll=null;turn=(turn+1)%4;render()},550)}render()};
+document.querySelector('#new').onclick=()=>{coins=0;init()};
+function msg(t,s){document.querySelector('#hint').textContent=s}
+document.querySelector('#modalClose').onclick=()=>{document.querySelector('#overlay').style.display='none';coins=0;init()};
+init();
+</script></body></html>
